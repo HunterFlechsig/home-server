@@ -97,9 +97,9 @@ That default via is the Gateway. The `vmbr0` CIDR is the LAN (example `10.1.10.0
 
 | Name | Role | Address |
 | --- | --- | --- |
-| host1 | Laptop Host | |
-| dns | DNS Guest | |
-| app | App Guest | |
+| host1 | Laptop Host | `192.168.0.10/24` |
+| dns | DNS Guest | `192.168.0.11/24` |
+| app | App Guest | `192.168.0.12/24` |
 
 On the Gateway, reserve `host1` if the UI allows it. On host1, set a static address on `vmbr0` in `/etc/network/interfaces` (Proxmox writes this file). Keep `bridge-ports` as the USB Ethernet interface name from `ip link` (often `enx…` or `enp…`, not `wlan0`).
 
@@ -129,7 +129,17 @@ ip -4 addr show vmbr0
 ip -4 route
 ```
 
-The address on `vmbr0` is the current host1 DHCP address. The `default via` address is the Gateway. Use those two numbers to pick the static host1, dns, and app addresses, then replace the `dhcp` line with a static stanza before rebooting.
+The address on `vmbr0` is the current host1 DHCP address. The `default via` address is the Gateway. This LAN is `192.168.0.0/24`, Gateway `192.168.0.1`. The first lease was `192.168.0.161`. That lease is not the pin. Stop the DHCP client and set the static host1 address before reboot:
+
+```bash
+killall dhclient
+sed -i 's/iface vmbr0 inet dhcp/iface vmbr0 inet static\n        address 192.168.0.10\/24\n        gateway 192.168.0.1/' /etc/network/interfaces
+ifreload -a
+ip -4 addr show vmbr0
+ip -4 route
+```
+
+`vmbr0` should show `inet 192.168.0.10/24` and `default via 192.168.0.1`. From the Nitro, open `https://192.168.0.10:8006`. On the Gateway, reserve MAC `c8:a3:62:d6:4f:86` as `192.168.0.10` if the UI allows it.
 
 If both commands still print nothing, `ifreload` brought the bridge up and never ran a DHCP client. On the `root@host1` console, confirm the port is in the bridge and request a lease directly:
 

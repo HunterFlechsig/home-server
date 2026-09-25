@@ -41,6 +41,13 @@ Facts later agents should not reinvent. Not a glossary (see `CONTEXT.md`) and no
 
 ## LAN addresses
 
-- Pin at install: `host1`, `dns`, `app`
-- Record the chosen IPs here once known
-- Subnet: read from Gateway at install (not assumed)
+- Subnet: `192.168.0.0/24`
+- Gateway: `192.168.0.1`
+- First DHCP lease on `vmbr0`: `192.168.0.161` (not the pin)
+- Pinned addresses, outside that lease:
+
+| Name | Role | Address |
+| --- | --- | --- |
+| host1 | Laptop Host | `192.168.0.10/24` |
+| dns | DNS Guest | `192.168.0.11/24` |
+| app | App Guest | `192.168.0.12/24` |

@@ -11,6 +11,7 @@ Facts later agents should not reinvent. Not a glossary (see `CONTEXT.md`) and no
 - Ports: 2× USB-C (charger, Uplink), 1× USB-A (Library Disk), HDMI, headset, SD
 - No built-in Ethernet
 - Uplink: USB-C Ethernet adapter, always plugged in
+- Uplink interface: `enxc8a362d64f86` (`vmbr0` `bridge-ports`). Wi-Fi `wlp0s20f3` is not the Uplink. The installer name `nic0` does not exist after boot.
 - Library Disk (temporary): 2 TB WD Passport, expendable, USB-A, 24/7 plugged in
 - Physical: laptop mode, AC power, lid closed, no sleep on lid close
 - Hostname: `host1` (also the Tailscale machine name)

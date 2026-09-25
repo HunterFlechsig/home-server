@@ -103,6 +103,17 @@ That default via is the Gateway. The `vmbr0` CIDR is the LAN (example `10.1.10.0
 
 On the Gateway, reserve `host1` if the UI allows it. On host1, set a static address on `vmbr0` in `/etc/network/interfaces` (Proxmox writes this file). Keep `bridge-ports` as the USB Ethernet interface name from `ip link` (often `enx…` or `enp…`, not `wlan0`).
 
+The installer writes `bridge-ports nic0`. That name does not exist after boot. On this Host, `ip link` shows the Uplink as `enxc8a362d64f86` and Wi-Fi as `wlp0s20f3`. If `ifreload -a` prints `bridge port nic0 does not exist`, replace every `nic0` in `/etc/network/interfaces` with `enxc8a362d64f86` (leave address and gateway lines alone), then reload:
+
+```bash
+grep -n nic0 /etc/network/interfaces
+sed -i 's/nic0/enxc8a362d64f86/g' /etc/network/interfaces
+ifreload -a
+ip -br link
+```
+
+`enxc8a362d64f86` should be UP and show `master vmbr0`. If it is `NO-CARRIER`, reseat the USB-C adapter and the cable to the Gateway. Do not put `wlp0s20f3` in `bridge-ports`.
+
 ```bash
 ifreload -a
 ```
@@ -167,7 +178,7 @@ Done when: `host1` shows Subnets **approved**, Funnel is off, and the Nitro can 
 All of these are true:
 
 - 7420 runs Proxmox VE 9, hostname `host1`, ext4+LVM, lid closed, no sleep
-- Uplink is USB-C Ethernet on `vmbr0`; Wi-Fi is unused
+- Uplink is USB-C Ethernet `enxc8a362d64f86` on `vmbr0`; Wi-Fi `wlp0s20f3` is unused
 - Inventory lists IPs for `host1`, `dns`, `app`
 - Nitro reaches `https://<host1-ip>:8006` and Tailscale hostname `host1`
 - Subnet route for the LAN is advertised and approved

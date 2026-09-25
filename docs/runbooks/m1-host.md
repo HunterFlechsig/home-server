@@ -120,9 +120,16 @@ ip -4 addr show vmbr0
 ip -4 route
 ```
 
+A fresh install leaves `iface vmbr0 inet manual`, so the bridge stays up with no IPv4. Switch that one line to DHCP, reload, and read the lease:
+
 ```bash
+sed -i 's/iface vmbr0 inet manual/iface vmbr0 inet dhcp/' /etc/network/interfaces
 ifreload -a
+ip -4 addr show vmbr0
+ip -4 route
 ```
+
+The address on `vmbr0` is the current host1 DHCP address. The `default via` address is the Gateway. Use those two numbers to pick the static host1, dns, and app addresses, then replace the `dhcp` line with a static stanza before rebooting.
 
 Reconnect SSH to the **new** host1 IP. Re-open `https://NEW_IP:8006`.
 

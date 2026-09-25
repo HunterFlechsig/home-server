@@ -103,14 +103,24 @@ That default via is the Gateway. The `vmbr0` CIDR is the LAN (example `10.1.10.0
 
 On the Gateway, reserve `host1` if the UI allows it. On host1, set a static address on `vmbr0` in `/etc/network/interfaces` (Proxmox writes this file). Keep `bridge-ports` as the USB Ethernet interface name from `ip link` (often `enx…` or `enp…`, not `wlan0`).
 
-The installer writes `bridge-ports nic0`. That name does not exist after boot. On this Host, `ip link` shows the Uplink as `enxc8a362d64f86` and Wi-Fi as `wlp0s20f3`. If `ifreload -a` prints `bridge port nic0 does not exist`, replace every `nic0` in `/etc/network/interfaces` with `enxc8a362d64f86` (leave address and gateway lines alone), then reload:
+The installer writes `bridge-ports nic0`. That name does not exist after boot. On this Host, `ip link` shows the Uplink as `enxc8a362d64f86` and Wi-Fi as `wlp0s20f3`. Run the fix on the **7420 console**. The prompt must be `root@host1`. The same commands on the Nitro fail with `No such file or directory` because that file is not there.
+
+If `ifreload -a` prints `bridge port nic0 does not exist`:
 
 ```bash
-grep -n nic0 /etc/network/interfaces
+ls -la /etc/network
+grep -n nic0 /etc/network/interfaces /etc/network/interfaces.new
+```
+
+`grep` prints the file that contains `nic0`. Replace `nic0` only in that file (leave address and gateway lines alone). Pending GUI edits live in `interfaces.new`; the live file is `interfaces`.
+
+```bash
 sed -i 's/nic0/enxc8a362d64f86/g' /etc/network/interfaces
 ifreload -a
 ip -br link
 ```
+
+If `ls` shows `interfaces.new` and no `interfaces`, edit `interfaces.new` the same way, then `cp /etc/network/interfaces.new /etc/network/interfaces` and `ifreload -a`.
 
 `enxc8a362d64f86` should be UP and show `master vmbr0`. If it is `NO-CARRIER`, reseat the USB-C adapter and the cable to the Gateway. Do not put `wlp0s20f3` in `bridge-ports`.
 

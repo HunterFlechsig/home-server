@@ -97,15 +97,61 @@ That default via is the Gateway. The `vmbr0` CIDR is the LAN (example `10.1.10.0
 
 | Name | Role | Address |
 | --- | --- | --- |
-| host1 | Laptop Host | |
-| dns | DNS Guest | |
-| app | App Guest | |
+| host1 | Laptop Host | `192.168.0.10/24` |
+| dns | DNS Guest | `192.168.0.11/24` |
+| app | App Guest | `192.168.0.12/24` |
 
 On the Gateway, reserve `host1` if the UI allows it. On host1, set a static address on `vmbr0` in `/etc/network/interfaces` (Proxmox writes this file). Keep `bridge-ports` as the USB Ethernet interface name from `ip link` (often `enx…` or `enp…`, not `wlan0`).
 
+The installer writes `bridge-ports nic0`. That name does not exist after boot. On this Host, `ip link` shows the Uplink as `enxc8a362d64f86` and Wi-Fi as `wlp0s20f3`. Run the fix on the **7420 console**. The prompt must be `root@host1`. The same commands on the Nitro fail with `No such file or directory` because that file is not there.
+
+If `ifreload -a` prints `bridge port nic0 does not exist`, edit the live file only. There is no `interfaces.new` on a fresh install, so `grep` and `sed` mentioning that name print `No such file or directory`. That message is expected. Leave address and gateway lines alone.
+
 ```bash
+sed -i 's/nic0/enxc8a362d64f86/g' /etc/network/interfaces
 ifreload -a
+ip -br link
 ```
+
+`enxc8a362d64f86` should be UP with `LOWER_UP`, and `vmbr0` should be UP with the same MAC (`c8:a3:62:d6:4f:86`). If the USB port is `NO-CARRIER`, reseat the USB-C adapter and the cable to the Gateway. Do not put `wlp0s20f3` in `bridge-ports`. Then confirm the LAN address:
+
+```bash
+ip -4 addr show vmbr0
+ip -4 route
+```
+
+A fresh install leaves `iface vmbr0 inet manual`, so the bridge stays up with no IPv4. Switch that one line to DHCP, reload, and read the lease:
+
+```bash
+sed -i 's/iface vmbr0 inet manual/iface vmbr0 inet dhcp/' /etc/network/interfaces
+ifreload -a
+ip -4 addr show vmbr0
+ip -4 route
+```
+
+The address on `vmbr0` is the current host1 DHCP address. The `default via` address is the Gateway. This LAN is `192.168.0.0/24`, Gateway `192.168.0.1`. The first lease was `192.168.0.161`. That lease is not the pin. Stop the DHCP client and set the static host1 address before reboot:
+
+```bash
+killall dhclient
+sed -i 's/iface vmbr0 inet dhcp/iface vmbr0 inet static\n        address 192.168.0.10\/24\n        gateway 192.168.0.1/' /etc/network/interfaces
+ifreload -a
+ip -4 addr show vmbr0
+ip -4 route
+```
+
+`vmbr0` should show `inet 192.168.0.10/24` and `default via 192.168.0.1`. From the Nitro, open `https://192.168.0.10:8006`. On the Gateway, reserve MAC `c8:a3:62:d6:4f:86` as `192.168.0.10` if the UI allows it.
+
+If both commands still print nothing, `ifreload` brought the bridge up and never ran a DHCP client. On the `root@host1` console, confirm the port is in the bridge and request a lease directly:
+
+```bash
+grep -n vmbr0 /etc/network/interfaces
+bridge link
+dhclient -v -1 vmbr0
+ip -4 addr show vmbr0
+ip -4 route
+```
+
+`bridge link` must list `enxc8a362d64f86`. `dhclient` must print a `bound` line. `No DHCPOFFERS` means the cable is not reaching a Gateway LAN port: reseat the USB-C adapter and move the Ethernet cable to another LAN port on the Gateway.
 
 Reconnect SSH to the **new** host1 IP. Re-open `https://NEW_IP:8006`.
 
@@ -167,7 +213,7 @@ Done when: `host1` shows Subnets **approved**, Funnel is off, and the Nitro can 
 All of these are true:
 
 - 7420 runs Proxmox VE 9, hostname `host1`, ext4+LVM, lid closed, no sleep
-- Uplink is USB-C Ethernet on `vmbr0`; Wi-Fi is unused
+- Uplink is USB-C Ethernet `enxc8a362d64f86` on `vmbr0`; Wi-Fi `wlp0s20f3` is unused
 - Inventory lists IPs for `host1`, `dns`, `app`
 - Nitro reaches `https://<host1-ip>:8006` and Tailscale hostname `host1`
 - Subnet route for the LAN is advertised and approved

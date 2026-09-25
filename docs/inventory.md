@@ -11,6 +11,7 @@ Facts later agents should not reinvent. Not a glossary (see `CONTEXT.md`) and no
 - Ports: 2× USB-C (charger, Uplink), 1× USB-A (Library Disk), HDMI, headset, SD
 - No built-in Ethernet
 - Uplink: USB-C Ethernet adapter, always plugged in
+- Uplink interface: `enxc8a362d64f86` (`vmbr0` `bridge-ports`). Wi-Fi `wlp0s20f3` is not the Uplink. The installer name `nic0` does not exist after boot.
 - Library Disk (temporary): 2 TB WD Passport, expendable, USB-A, 24/7 plugged in
 - Physical: laptop mode, AC power, lid closed, no sleep on lid close
 - Hostname: `host1` (also the Tailscale machine name)
@@ -40,6 +41,13 @@ Facts later agents should not reinvent. Not a glossary (see `CONTEXT.md`) and no
 
 ## LAN addresses
 
-- Pin at install: `host1`, `dns`, `app`
-- Record the chosen IPs here once known
-- Subnet: read from Gateway at install (not assumed)
+- Subnet: `192.168.0.0/24`
+- Gateway: `192.168.0.1`
+- First DHCP lease on `vmbr0`: `192.168.0.161` (not the pin)
+- Pinned addresses, outside that lease:
+
+| Name | Role | Address |
+| --- | --- | --- |
+| host1 | Laptop Host | `192.168.0.10/24` |
+| dns | DNS Guest | `192.168.0.11/24` |
+| app | App Guest | `192.168.0.12/24` |

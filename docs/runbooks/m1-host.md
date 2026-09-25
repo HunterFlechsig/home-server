@@ -131,6 +131,18 @@ ip -4 route
 
 The address on `vmbr0` is the current host1 DHCP address. The `default via` address is the Gateway. Use those two numbers to pick the static host1, dns, and app addresses, then replace the `dhcp` line with a static stanza before rebooting.
 
+If both commands still print nothing, `ifreload` brought the bridge up and never ran a DHCP client. On the `root@host1` console, confirm the port is in the bridge and request a lease directly:
+
+```bash
+grep -n vmbr0 /etc/network/interfaces
+bridge link
+dhclient -v -1 vmbr0
+ip -4 addr show vmbr0
+ip -4 route
+```
+
+`bridge link` must list `enxc8a362d64f86`. `dhclient` must print a `bound` line. `No DHCPOFFERS` means the cable is not reaching a Gateway LAN port: reseat the USB-C adapter and move the Ethernet cable to another LAN port on the Gateway.
+
 Reconnect SSH to the **new** host1 IP. Re-open `https://NEW_IP:8006`.
 
 Done when: inventory has all three IPs, host1 answers on the pinned address after a reboot, and Wi-Fi is not the Uplink (`ip route` default goes out `vmbr0`).
